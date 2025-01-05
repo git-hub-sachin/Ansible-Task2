@@ -1,0 +1,48 @@
+- name: Configure MongoDB Replica Set
+  hosts: all
+  become: true
+  tasks:
+    - name: Set replication configuration in mongod.conf
+      blockinfile:
+        path: /etc/mongod.conf
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        block: |
+          replication:
+            replSetName: "rs0"
+
+    - name: Ensure bindIp is set to 0.0.0.0 for external connections
+      lineinfile:
+        path: /etc/mongod.conf
+        regexp: '^(\s*)bindIp:'
+        line: '\1bindIp: 0.0.0.0'
+        backrefs: yes
+      notify: Restart MongoDB
+
+    - name: Restart MongoDB service to apply replication configuration
+      service:
+        name: mongod
+        state: restarted
+        enabled: true
+
+    - name: Initialize Replica Set on Master if not initialized
+      shell: |
+        mongosh --host "3.89.131.85" --eval '
+          rs.initiate({
+            _id: "rs0",
+            members: [
+              { _id: 0, host: "3.89.131.85:27017" },
+              { _id: 1, host: "44.203.164.31:27017" }
+            ]
+          })
+        '
+      when: inventory_hostname == "control_node"
+      register: rs_init
+      failed_when: rs_init.rc != 0 and "'already initialized' not in rs_init.stderr"
+      ignore_errors: yes
+
+  handlers:
+    - name: Restart MongoDB
+      service:
+        name: mongod
+        state: restarted
+

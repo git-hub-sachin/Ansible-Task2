@@ -1,0 +1,47 @@
+---
+- name: Completely remove MongoDB
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Stop MongoDB service
+      systemd:
+        name: mongod
+        state: stopped
+        enabled: false
+
+    - name: Uninstall MongoDB packages
+      apt:
+        name: mongodb-org*
+        state: absent
+        purge: true
+        autoremove: true
+      register: remove_mongodb
+
+    - name: Verify MongoDB packages are removed
+      shell: dpkg -l | grep -i mongo || true
+      register: verify_mongodb
+      changed_when: false
+
+    - name: Remove MongoDB data directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /var/lib/mongodb
+        - /var/log/mongodb
+        - /etc/mongod.conf
+        - /etc/apt/sources.list.d/mongodb-org-8.0.list
+
+    - name: Clean up GPG keys
+      shell: |
+        rm -f /usr/share/keyrings/mongodb-server-8.0.gpg
+      args:
+        warn: false
+      register: gpg_cleanup
+      changed_when: gpg_cleanup.rc == 0
+
+    - name: Reload APT cache
+      apt:
+        update_cache: true
+

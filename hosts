@@ -1,0 +1,5 @@
+[control]
+control_node ansible_host=3.89.131.85
+
+[target_node]
+44.203.164.31

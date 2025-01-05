@@ -1,0 +1,40 @@
+---
+- name: Install MongoDB and ensure it is running
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Install prerequisites
+      apt:
+        name:
+          - gnupg
+          - curl
+        state: present
+        update_cache: yes
+
+    - name: Download MongoDB GPG key
+      get_url:
+        url: https://www.mongodb.org/static/pgp/server-8.0.asc
+        dest: /usr/share/keyrings/mongodb-server-8.0.gpg
+        mode: '0644'
+
+    - name: Add MongoDB repository
+      copy:
+        content: "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse\n"
+        dest: /etc/apt/sources.list.d/mongodb-org-8.0.list
+
+    - name: Update package cache
+      apt:
+        update_cache: yes
+
+    - name: Install MongoDB
+      apt:
+        name: mongodb-org
+        state: present
+
+    - name: Enable and start MongoDB service
+      systemd:
+        name: mongod
+        enabled: true
+        state: started
+

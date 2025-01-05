@@ -1,0 +1,38 @@
+---
+- name: Install Elasticsearch on Target Node
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Add Elasticsearch GPG key
+      apt_key:
+        url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+        state: present
+        validate_certs: yes
+
+    - name: Install apt transport https
+      apt:
+        name: apt-transport-https
+        state: present
+
+    - name: Add Elasticsearch APT repository
+      apt_repository:
+        repo: 'deb [signed-by=/usr/share/keyrings/elasticsearch-keyring.gpg] https://artifacts.elastic.co/packages/8.x/apt stable main'
+        filename: elastic-8.x
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Elasticsearch
+      apt:
+        name: elasticsearch
+        state: present
+
+    - name: Enable Elasticsearch service
+      service:
+        name: elasticsearch
+        enabled: yes
+        state: started
+

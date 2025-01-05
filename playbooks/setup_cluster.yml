@@ -1,0 +1,100 @@
+---
+- name: Configure Elasticsearch Master and Data Nodes
+  hosts: all
+  become: true
+  vars:
+    master_ip: "172.31.81.10" 
+    slave_ip: "172.31.87.0"   
+
+  tasks:
+    - name: Ensure node.master and node.data are set for master node
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^node.master:'
+        line: 'node.master: true'
+        state: present
+      when: "'master' in group_names"
+
+    - name: Ensure node.data is set to false for master node
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^node.data:'
+        line: 'node.data: false'
+        state: present
+      when: "'master' in group_names"
+
+    - name: Ensure node.ingest is set to false for master node
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^node.ingest:'
+        line: 'node.ingest: false'
+        state: present
+      when: "'master' in group_names"
+
+    - name: Ensure discovery.seed_hosts contains slave IP for master node
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^discovery.seed_hosts:'
+        line: "discovery.seed_hosts: [\"{{ slave_ip }}\"]"
+        state: present
+      when: "'master' in group_names"
+
+    - name: Ensure cluster.initial_master_nodes contains master IP for master node
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^cluster.initial_master_nodes:'
+        line: "cluster.initial_master_nodes: [\"{{ master_ip }}\"]"
+        state: present
+      when: "'master' in group_names"
+
+    - name: Ensure node.master is set to false for data node
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^node.master:'
+        line: 'node.master: false'
+        state: present
+      when: "'data' in group_names"
+
+    - name: Ensure node.data is set to true for data node
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^node.data:'
+        line: 'node.data: true'
+        state: present
+      when: "'data' in group_names"
+
+    - name: Ensure node.ingest is set to true for data node
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^node.ingest:'
+        line: 'node.ingest: true'
+        state: present
+      when: "'data' in group_names"
+
+    - name: Ensure discovery.seed_hosts contains master IP for data node
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^discovery.seed_hosts:'
+        line: "discovery.seed_hosts: [\"{{ master_ip }}\"]"
+        state: present
+      when: "'data' in group_names"
+
+    - name: Ensure cluster.initial_master_nodes contains master IP for data node
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^cluster.initial_master_nodes:'
+        line: "cluster.initial_master_nodes: [\"{{ master_ip }}\"]"
+        state: present
+      when: "'data' in group_names"
+
+    - name: Ensure network.host is set correctly for all nodes
+      lineinfile:
+        path: /etc/elasticsearch/elasticsearch.yml
+        regexp: '^network.host:'
+        line: 'network.host: _site_'
+        state: present
+
+    - name: Restart Elasticsearch service
+      service:
+        name: elasticsearch
+        state: restarted

@@ -1,0 +1,55 @@
+---
+- name: Completely Remove Elasticsearch and its Files
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Stop Elasticsearch service
+      service:
+        name: elasticsearch
+        state: stopped
+        enabled: no
+
+    - name: Remove Elasticsearch package
+      apt:
+        name: elasticsearch
+        state: absent
+        purge: yes
+        autoremove: yes
+
+    - name: Remove Elasticsearch data directory
+      file:
+        path: /var/lib/elasticsearch
+        state: absent
+
+    - name: Remove Elasticsearch log directory
+      file:
+        path: /var/log/elasticsearch
+        state: absent
+
+    - name: Remove Elasticsearch configuration directory
+      file:
+        path: /etc/elasticsearch
+        state: absent
+
+    - name: Delete Elasticsearch user
+      user:
+        name: elasticsearch
+        state: absent
+        remove: yes
+
+    - name: Delete Elasticsearch group
+      group:
+        name: elasticsearch
+        state: absent
+
+    - name: Run autoremove to clean up dependencies
+      apt:
+        autoremove: yes
+
+    - name: Find and remove any remaining Elasticsearch files
+      shell: |
+        find / -name "elasticsearch" -exec rm -rf {} \;
+      args:
+        warn: false
+
